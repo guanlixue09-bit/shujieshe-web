@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Book Consultant</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary-color: #3b82f6;
@@ -66,6 +67,74 @@
             padding: 3rem;
             box-shadow: var(--shadow);
             text-align: center;
+        }
+
+        /* Login Container */
+        .login-container {
+            max-width: 400px;
+            margin: 4rem auto;
+            background-color: var(--white);
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .login-container h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 2rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .login-form input {
+            padding: 1rem;
+            font-size: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .login-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .login-buttons button {
+            flex: 1;
+            padding: 1rem;
+        }
+
+        /* User Info */
+        .user-info {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+            font-size: 0.9rem;
+            color: var(--light-text);
+        }
+
+        .user-info strong {
+            color: var(--dark-color);
+        }
+
+        /* Main Container */
+        .main-container {
+            display: none;
         }
 
         .input-container {
@@ -203,31 +272,51 @@
     </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <h1>AI Book Consultant</h1>
+    <div class="user-info" id="userInfo" style="display: none;">
+        Current User: <strong id="userEmail"></strong>
+    </div>
+
+    <!-- Login Container -->
+    <div class="login-container" id="loginContainer">
+        <h2>Welcome</h2>
+        <div class="login-form">
+            <input type="email" id="emailInput" placeholder="Email" required>
+            <input type="password" id="passwordInput" placeholder="Password" required>
         </div>
-    </header>
+        <div class="login-buttons">
+            <button id="signupBtn">Sign Up</button>
+            <button id="loginBtn">Login</button>
+        </div>
+    </div>
 
-    <main>
-        <div class="container">
-            <div class="card">
-                <div class="input-container">
-                    <input 
-                        type="text" 
-                        id="problemInput" 
-                        placeholder="Describe your situation..."
-                    >
-                    <button id="getAdviceBtn">Get Advice</button>
-                </div>
+    <!-- Main Container -->
+    <div class="main-container" id="mainContainer">
+        <header>
+            <div class="container">
+                <h1>AI Book Consultant</h1>
+            </div>
+        </header>
 
-                <div class="response-section" id="responseSection" style="display: none;">
-                    <h2>Recommended Books</h2>
-                    <div class="response-content" id="responseContent"></div>
+        <main>
+            <div class="container">
+                <div class="card">
+                    <div class="input-container">
+                        <input 
+                            type="text" 
+                            id="problemInput" 
+                            placeholder="Describe your situation..."
+                        >
+                        <button id="getAdviceBtn">Get Advice</button>
+                    </div>
+
+                    <div class="response-section" id="responseSection" style="display: none;">
+                        <h2>Recommended Books</h2>
+                        <div class="response-content" id="responseContent"></div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <footer>
         <div class="container">
@@ -236,12 +325,99 @@
     </footer>
 
     <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://umatblzvkstglfbjkysq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtYXRibHp2a3N0Z2xmYmpreXNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzIwMzUsImV4cCI6MjA4NjA0ODAzNX0.hb2kXZ3osVFG54Ii9rfWiaJzk-_rkhlfO-EXZ6Ld89c';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const loginContainer = document.getElementById('loginContainer');
+            const mainContainer = document.getElementById('mainContainer');
+            const userInfo = document.getElementById('userInfo');
+            const userEmail = document.getElementById('userEmail');
+            const emailInput = document.getElementById('emailInput');
+            const passwordInput = document.getElementById('passwordInput');
+            const signupBtn = document.getElementById('signupBtn');
+            const loginBtn = document.getElementById('loginBtn');
             const problemInput = document.getElementById('problemInput');
             const getAdviceBtn = document.getElementById('getAdviceBtn');
             const responseSection = document.getElementById('responseSection');
             const responseContent = document.getElementById('responseContent');
 
+            // Auth state change listener
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (session) {
+                    // User is logged in
+                    userEmail.textContent = session.user.email;
+                    userInfo.style.display = 'block';
+                    loginContainer.style.display = 'none';
+                    mainContainer.style.display = 'block';
+                } else {
+                    // User is logged out
+                    userInfo.style.display = 'none';
+                    loginContainer.style.display = 'block';
+                    mainContainer.style.display = 'none';
+                }
+            });
+
+            // Check initial auth state
+            async function checkAuthState() {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    userEmail.textContent = session.user.email;
+                    userInfo.style.display = 'block';
+                    loginContainer.style.display = 'none';
+                    mainContainer.style.display = 'block';
+                }
+            }
+
+            // Call checkAuthState on load
+            checkAuthState();
+
+            // Sign up function
+            signupBtn.addEventListener('click', async function() {
+                const email = emailInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                if (!email || !password) {
+                    alert('Please enter email and password');
+                    return;
+                }
+
+                const { error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    alert('Error: ' + error.message);
+                } else {
+                    alert('Confirmation email sent! Please check your inbox.');
+                }
+            });
+
+            // Login function
+            loginBtn.addEventListener('click', async function() {
+                const email = emailInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                if (!email || !password) {
+                    alert('Please enter email and password');
+                    return;
+                }
+
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    alert('Error: ' + error.message);
+                }
+            });
+
+            // Get advice function
             getAdviceBtn.addEventListener('click', async function() {
                 const problem = problemInput.value.trim();
                 
