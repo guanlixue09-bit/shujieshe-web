@@ -328,7 +328,8 @@
         // Initialize Supabase (global scope)
         const supabaseUrl = 'https://umatblzvkstglfbjkysq.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtYXRibHp2a3N0Z2xmYmpreXNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzIwMzUsImV4cCI6MjA4NjA0ODAzNX0.hb2kXZ3osVFG54Ii9rfWiaJzk-_rkhlfO-EXZ6Ld89c';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        // Use the global supabase object from CDN to create client
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('DOM Content Loaded');
